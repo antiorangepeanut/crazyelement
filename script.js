@@ -1,105 +1,165 @@
 let score = 0;
+let time = 90;
+let interval;
 
-function updateScore() {
+function startFullTest() {
+  score = 0;
+  time = 90;
+  updateUI();
+
+  interval = setInterval(() => {
+    time--;
+    updateUI();
+    if (time <= 0) {
+      clearInterval(interval);
+      endGame();
+    }
+  }, 1000);
+
+  nextGame();
+}
+
+function updateUI() {
   document.getElementById("score").innerText = "Score: " + score;
+  document.getElementById("timer").innerText = "Time: " + time;
 }
 
-function startGame(type) {
-  const game = document.getElementById("game");
-
-  if (type === "math") {
-    let a = rand(20), b = rand(20);
-    game.innerHTML = `
-      <h2>${a} × ${b}</h2>
-      <input id="ans">
-      <button onclick="checkMath(${a}, ${b})">Submit</button>
-    `;
-  }
-
-  if (type === "pattern") {
-    game.innerHTML = `
-      <h2>2, 4, 8, 16, ?</h2>
-      <input id="ans">
-      <button onclick="checkPattern()">Submit</button>
-    `;
-  }
-
-  if (type === "logic") {
-    game.innerHTML = `
-      <p>All dogs are animals. Some animals are black.</p>
-      <p>Are all dogs black?</p>
-      <input id="ans">
-      <button onclick="checkLogic()">Submit</button>
-    `;
-  }
-
-  if (type === "memory") {
-    let num = rand(9000) + 1000;
-    game.innerHTML = `<h2 id="mem">${num}</h2>`;
-    setTimeout(() => {
-      game.innerHTML = `
-        <input id="ans">
-        <button onclick="checkMemory(${num})">Submit</button>
-      `;
-    }, 2000);
-  }
-
-  if (type === "data") {
-    game.innerHTML = `
-      <p>Revenue: 100 → 150 → 120</p>
-      <p>Max value?</p>
-      <input id="ans">
-      <button onclick="checkData()">Submit</button>
-    `;
-  }
-
-  if (type === "reaction") {
-    game.innerHTML = `<h2 id="color" style="color:red">WAIT</h2>`;
-    setTimeout(() => {
-      document.getElementById("color").innerText = "CLICK";
-      document.getElementById("color").style.color = "green";
-    }, 2000);
-
-    game.innerHTML += `<br><button onclick="checkReaction()">Click</button>`;
-  }
+function endGame() {
+  document.getElementById("game").innerHTML = `<h2>Final Score: ${score}</h2>`;
 }
 
-function checkMath(a, b) {
-  let ans = document.getElementById("ans").value;
-  if (parseInt(ans) === a * b) score++;
-  updateScore();
+function nextGame() {
+  const games = [ecosystemGame, resourceGame, dataGame, patternGame];
+  let g = games[Math.floor(Math.random() * games.length)];
+  g();
 }
 
-function checkPattern() {
-  let ans = document.getElementById("ans").value;
-  if (ans == "32") score++;
-  updateScore();
+/////////////////////////
+// 1. ECOSYSTEM GAME
+/////////////////////////
+
+function ecosystemGame() {
+  let species = [
+    {name: "Grass", type: "producer"},
+    {name: "Rabbit", type: "herbivore"},
+    {name: "Fox", type: "carnivore"},
+    {name: "Wolf", type: "carnivore"}
+  ];
+
+  document.getElementById("game").innerHTML = `
+    <h2>Build Stable Ecosystem</h2>
+    <p>Select 3 species that can survive together</p>
+    ${species.map(s => `<button onclick="selectSpecies('${s.name}')">${s.name}</button>`).join("")}
+    <br><br>
+    <button onclick="submitEco()">Submit</button>
+  `;
+
+  window.selected = [];
+
+  window.selectSpecies = (name) => {
+    if (!selected.includes(name)) selected.push(name);
+  };
+
+  window.submitEco = () => {
+    // correct chain = Grass → Rabbit → Fox
+    if (selected.includes("Grass") && selected.includes("Rabbit") && selected.includes("Fox")) {
+      score += 3;
+    }
+    updateUI();
+    nextGame();
+  };
 }
 
-function checkLogic() {
-  let ans = document.getElementById("ans").value.toLowerCase();
-  if (ans === "no") score++;
-  updateScore();
+/////////////////////////
+// 2. RESOURCE GAME
+/////////////////////////
+
+function resourceGame() {
+  let budget = 100;
+
+  let options = [
+    {name: "Project A", cost: 50, value: 80},
+    {name: "Project B", cost: 40, value: 60},
+    {name: "Project C", cost: 30, value: 50}
+  ];
+
+  document.getElementById("game").innerHTML = `
+    <h2>Maximize Value (Budget: ${budget})</h2>
+    ${options.map(o =>
+      `<button onclick="pick('${o.name}')">${o.name} (Cost ${o.cost}, Value ${o.value})</button>`
+    ).join("")}
+    <br><br>
+    <button onclick="submitResource()">Submit</button>
+  `;
+
+  window.selectedRes = [];
+
+  window.pick = (name) => {
+    if (!selectedRes.includes(name)) selectedRes.push(name);
+  };
+
+  window.submitResource = () => {
+    let totalCost = 0, totalValue = 0;
+
+    options.forEach(o => {
+      if (selectedRes.includes(o.name)) {
+        totalCost += o.cost;
+        totalValue += o.value;
+      }
+    });
+
+    if (totalCost <= budget && totalValue >= 110) score += 3;
+
+    updateUI();
+    nextGame();
+  };
 }
 
-function checkMemory(num) {
-  let ans = document.getElementById("ans").value;
-  if (ans == num) score++;
-  updateScore();
+/////////////////////////
+// 3. DATA GAME
+/////////////////////////
+
+function dataGame() {
+  let profits = [120, 180, 90, 200];
+
+  document.getElementById("game").innerHTML = `
+    <h2>Profit Data</h2>
+    <p>${profits.join(", ")}</p>
+    <p>Best choice?</p>
+    <input id="ans">
+    <button onclick="checkData(${Math.max(...profits)})">Submit</button>
+  `;
+
+  window.checkData = (correct) => {
+    let ans = document.getElementById("ans").value;
+    if (parseInt(ans) === correct) score++;
+    updateUI();
+    nextGame();
+  };
 }
 
-function checkData() {
-  let ans = document.getElementById("ans").value;
-  if (ans == "150") score++;
-  updateScore();
-}
+/////////////////////////
+// 4. PATTERN GAME
+/////////////////////////
 
-function checkReaction() {
-  let text = document.getElementById("color").innerText;
-  if (text === "CLICK") score++;
-  updateScore();
-}
+function patternGame() {
+  let patterns = [
+    {q:"2,4,8,16,?",a:"32"},
+    {q:"3,9,27,?",a:"81"}
+  ];
 
-function rand(n) {
-  return Math.floor(Math.random() * n);
+  let p = patterns[Math.floor(Math.random()*patterns.length)];
+
+  document.getElementById("game").innerHTML = `
+    <h2>${p.q}</h2>
+    <input id="ans">
+    <button onclick="checkPattern('${p.a}')">Submit</button>
+  `;
+
+  window.checkPattern = (a) => {
+    let ans = document.getElementById("ans").value;
+    if (ans == a) score++;
+    updateUI();
+    nextGame();
+  };
 }
